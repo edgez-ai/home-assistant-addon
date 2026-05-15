@@ -11,6 +11,11 @@
     "aarch64",
     "amd64"
   ],
+  "ports": {
+    "5683/udp": 5683,
+    "8088/tcp": 8088,
+    "4001/tcp": 4001
+  },
   "options": {
     "mqtt_url": "mqtt://core-mosquitto:1883",
     "mqtt_username": "edgez",
