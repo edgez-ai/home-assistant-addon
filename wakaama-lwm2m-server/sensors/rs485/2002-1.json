@@ -1,5 +1,6 @@
 {
   "id": 2002,
+  "version" : 1,
   "name": "Flow Meter RS485",
   "lwm2m_objects": [
     {

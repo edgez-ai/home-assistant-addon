@@ -1,5 +1,6 @@
 {
   "id": 1003,
+  "version" : 1,
   "name": "Random Temperature (Sample)",
   "lwm2m_objects": [
     {

@@ -1,5 +1,6 @@
 {
   "id": 1,
+  "version" : 1,
   "name": "VC0706 Camera RS485",
   "lwm2m_objects": [
     {

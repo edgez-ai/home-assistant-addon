@@ -1,5 +1,6 @@
 {
   "id": 1002,
+  "version" : 1,
   "name": "SHT3x Temperature/Humidity",
   "lwm2m_objects": [
     {
