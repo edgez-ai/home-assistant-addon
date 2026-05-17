@@ -9,6 +9,13 @@ RUN apt-get update \
         jq \
         libmicrohttpd12 \
         libmosquitto1 \
+        libglib2.0-0t64 \
+        libgstreamer1.0-0 \
+        libgstreamer-plugins-base1.0-0 \
+        libgstrtspserver-1.0-0 \
+        gstreamer1.0-plugins-base \
+        gstreamer1.0-plugins-good \
+        gstreamer1.0-plugins-bad \
     && rm -rf /var/lib/apt/lists/*
 
 COPY . /opt/addon
