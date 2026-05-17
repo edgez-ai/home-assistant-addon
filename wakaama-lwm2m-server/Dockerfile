@@ -7,6 +7,7 @@ RUN apt-get update \
         ca-certificates \
         curl \
         jq \
+        gstreamer1.0-tools \
         libmicrohttpd12 \
         libmosquitto1 \
         libglib2.0-0t64 \
@@ -14,9 +15,13 @@ RUN apt-get update \
         libgstreamer-plugins-base1.0-0 \
         libgstrtspserver-1.0-0 \
         gstreamer1.0-plugins-base \
+        gstreamer1.0-plugins-base-apps \
         gstreamer1.0-plugins-good \
         gstreamer1.0-plugins-bad \
         gstreamer1.0-plugins-ugly \
+    && gst-inspect-1.0 videotestsrc videoconvert x264enc rtph264pay >/dev/null \
+    && gst-inspect-1.0 clockoverlay textoverlay >/dev/null \
+        || echo "WARNING: clockoverlay/textoverlay not found; server will use fallback no-overlay H264 pipeline" \
     && rm -rf /var/lib/apt/lists/*
 
 COPY . /opt/addon
