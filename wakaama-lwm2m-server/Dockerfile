@@ -1,4 +1,4 @@
-FROM ubuntu:24.04
+FROM debian:bookworm-slim
 
 ARG TARGETARCH
 
@@ -11,7 +11,7 @@ RUN apt-get update \
         gstreamer1.0-tools \
         libmicrohttpd12 \
         libmosquitto1 \
-        libglib2.0-0t64 \
+        libglib2.0-0 \
         libgstreamer1.0-0 \
         libgstreamer-plugins-base1.0-0 \
         libgstrtspserver-1.0-0 \
@@ -31,11 +31,9 @@ RUN apt-get update \
         gstreamer1.0-plugins-bad \
         gstreamer1.0-plugins-ugly \
     && gst-inspect-1.0 videotestsrc videoconvert x264enc rtph264pay >/dev/null \
-    && (gst-inspect-1.0 pango >/dev/null \
-        || echo "WARNING: pango plugin not found at build time") \
-    && (gst-inspect-1.0 clockoverlay textoverlay >/dev/null \
-        || echo "WARNING: clockoverlay/textoverlay not found at build time; RTSP server will use no-overlay fallback") \
-    && rm -rf /var/lib/apt/lists/*
+    && gst-inspect-1.0 pango >/dev/null \
+    && gst-inspect-1.0 clockoverlay textoverlay >/dev/null \
+    && rm -rf /var/lib/apt/lists/* /root/.cache/gstreamer-1.0
 
 COPY . /opt/addon
 

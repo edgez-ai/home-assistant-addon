@@ -66,22 +66,37 @@ elif [ -n "${CLOUD_SERIAL}" ]; then
 	echo "Cloud options: --cloud-serial ${CLOUD_SERIAL}"
 fi
 
+# Force GStreamer to rescan plugins on every start so stale negative-cache
+# entries (from earlier images missing pango runtime libs) don't persist.
+rm -rf /root/.cache/gstreamer-1.0 2>/dev/null || true
+export GST_REGISTRY_UPDATE=yes
+
 if command -v gst-inspect-1.0 >/dev/null 2>&1; then
 	if ! gst-inspect-1.0 clockoverlay textoverlay >/dev/null 2>&1; then
 		echo "WARNING: GStreamer overlay elements not available at runtime (clockoverlay/textoverlay)"
-		echo "Trying to inspect pango plugin for missing shared libraries..."
-		gst-inspect-1.0 pango >/tmp/gst-pango-inspect.log 2>&1 || true
-		if grep -q "No such element or plugin" /tmp/gst-pango-inspect.log; then
-			echo "WARNING: pango plugin not found by gst-inspect"
-		fi
-		plugin_so="$(find /usr/lib -path '*/gstreamer-1.0/libgstpango.so' 2>/dev/null | head -n 1 || true)"
-		if [ -n "${plugin_so}" ] && command -v ldd >/dev/null 2>&1; then
-			missing_libs="$(ldd "${plugin_so}" | grep 'not found' || true)"
-			if [ -n "${missing_libs}" ]; then
-				echo "WARNING: libgstpango.so has missing shared libraries:"
-				echo "${missing_libs}"
+		echo "--- pango plugin diagnostic ---"
+		plugin_so="$(find /usr/lib /usr/local/lib -path '*/gstreamer-1.0/libgstpango.so' 2>/dev/null | head -n 1 || true)"
+		if [ -z "${plugin_so}" ]; then
+			echo "DIAG: libgstpango.so is NOT installed on disk"
+			echo "DIAG: contents of gstreamer plugin dir:"
+			find /usr/lib /usr/local/lib -path '*/gstreamer-1.0/*.so' 2>/dev/null | xargs -n1 basename 2>/dev/null | sort | sed 's/^/  /'
+			echo "DIAG: dpkg owner of gst-plugins-base pango-related files:"
+			dpkg -S libgstpango 2>&1 | head -5 || true
+		else
+			echo "DIAG: found ${plugin_so}"
+			if command -v ldd >/dev/null 2>&1; then
+				echo "DIAG: ldd ${plugin_so}:"
+				ldd "${plugin_so}" | sed 's/^/  /'
+				missing_libs="$(ldd "${plugin_so}" | grep 'not found' || true)"
+				if [ -n "${missing_libs}" ]; then
+					echo "DIAG: libgstpango.so has MISSING shared libraries:"
+					echo "${missing_libs}" | sed 's/^/  /'
+				fi
 			fi
+			echo "DIAG: gst-inspect-1.0 pango output:"
+			gst-inspect-1.0 pango 2>&1 | head -20 | sed 's/^/  /'
 		fi
+		echo "--- end pango diagnostic ---"
 	fi
 fi
 
