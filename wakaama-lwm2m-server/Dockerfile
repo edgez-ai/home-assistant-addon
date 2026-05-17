@@ -15,7 +15,10 @@ RUN apt-get update \
         libgstreamer1.0-0 \
         libgstreamer-plugins-base1.0-0 \
         libgstrtspserver-1.0-0 \
+        libfontconfig1 \
+        libfreetype6 \
         libpango-1.0-0 \
+        libpangoft2-1.0-0 \
         libpangocairo-1.0-0 \
         gstreamer1.0-plugins-base \
         gstreamer1.0-plugins-base-apps \

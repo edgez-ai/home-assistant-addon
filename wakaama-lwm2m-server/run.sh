@@ -66,4 +66,23 @@ elif [ -n "${CLOUD_SERIAL}" ]; then
 	echo "Cloud options: --cloud-serial ${CLOUD_SERIAL}"
 fi
 
+if command -v gst-inspect-1.0 >/dev/null 2>&1; then
+	if ! gst-inspect-1.0 clockoverlay textoverlay >/dev/null 2>&1; then
+		echo "WARNING: GStreamer overlay elements not available at runtime (clockoverlay/textoverlay)"
+		echo "Trying to inspect pango plugin for missing shared libraries..."
+		gst-inspect-1.0 pango >/tmp/gst-pango-inspect.log 2>&1 || true
+		if grep -q "No such element or plugin" /tmp/gst-pango-inspect.log; then
+			echo "WARNING: pango plugin not found by gst-inspect"
+		fi
+		plugin_so="$(find /usr/lib -path '*/gstreamer-1.0/libgstpango.so' 2>/dev/null | head -n 1 || true)"
+		if [ -n "${plugin_so}" ] && command -v ldd >/dev/null 2>&1; then
+			missing_libs="$(ldd "${plugin_so}" | grep 'not found' || true)"
+			if [ -n "${missing_libs}" ]; then
+				echo "WARNING: libgstpango.so has missing shared libraries:"
+				echo "${missing_libs}"
+			fi
+		fi
+	fi
+fi
+
 exec "$@"
