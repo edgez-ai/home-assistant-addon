@@ -15,17 +15,24 @@ RUN apt-get update \
         libgstreamer1.0-0 \
         libgstreamer-plugins-base1.0-0 \
         libgstrtspserver-1.0-0 \
+        libcairo2 \
         libfontconfig1 \
         libfreetype6 \
+        libfribidi0 \
+        libgraphite2-3 \
+        libharfbuzz0b \
         libpango-1.0-0 \
         libpangoft2-1.0-0 \
         libpangocairo-1.0-0 \
+        libthai0 \
         gstreamer1.0-plugins-base \
         gstreamer1.0-plugins-base-apps \
         gstreamer1.0-plugins-good \
         gstreamer1.0-plugins-bad \
         gstreamer1.0-plugins-ugly \
     && gst-inspect-1.0 videotestsrc videoconvert x264enc rtph264pay >/dev/null \
+    && (gst-inspect-1.0 pango >/dev/null \
+        || echo "WARNING: pango plugin not found at build time") \
     && (gst-inspect-1.0 clockoverlay textoverlay >/dev/null \
         || echo "WARNING: clockoverlay/textoverlay not found at build time; RTSP server will use no-overlay fallback") \
     && rm -rf /var/lib/apt/lists/*
