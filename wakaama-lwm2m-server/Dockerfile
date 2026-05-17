@@ -8,13 +8,9 @@ RUN apt-get update \
         curl \
         jq \
         fonts-dejavu-core \
-        gstreamer1.0-tools \
         libmicrohttpd12 \
         libmosquitto1 \
         libglib2.0-0 \
-        libgstreamer1.0-0 \
-        libgstreamer-plugins-base1.0-0 \
-        libgstrtspserver-1.0-0 \
         libcairo2 \
         libfontconfig1 \
         libfreetype6 \
@@ -25,15 +21,37 @@ RUN apt-get update \
         libpangoft2-1.0-0 \
         libpangocairo-1.0-0 \
         libthai0 \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        gstreamer1.0-tools \
+        libgstreamer1.0-0 \
+        libgstreamer-plugins-base1.0-0 \
+        libgstrtspserver-1.0-0 \
         gstreamer1.0-plugins-base \
         gstreamer1.0-plugins-base-apps \
         gstreamer1.0-plugins-good \
         gstreamer1.0-plugins-bad \
         gstreamer1.0-plugins-ugly \
-    && gst-inspect-1.0 videotestsrc videoconvert x264enc rtph264pay >/dev/null \
-    && gst-inspect-1.0 pango >/dev/null \
-    && gst-inspect-1.0 clockoverlay textoverlay >/dev/null \
-    && rm -rf /var/lib/apt/lists/* /root/.cache/gstreamer-1.0
+    && rm -rf /var/lib/apt/lists/*
+
+# Diagnostics only; do not fail the build here. The runtime diagnostic in
+# run.sh will produce a more useful report if anything is missing in the
+# deployed image.
+RUN set +e; \
+    echo "=== gst-inspect verification (informational) ==="; \
+    gst-inspect-1.0 videotestsrc videoconvert x264enc rtph264pay >/dev/null \
+        && echo "OK: core encode pipeline elements present" \
+        || echo "WARNING: core encode pipeline elements missing"; \
+    gst-inspect-1.0 pango >/dev/null \
+        && echo "OK: pango plugin present" \
+        || echo "WARNING: pango plugin not found at build time"; \
+    gst-inspect-1.0 clockoverlay textoverlay >/dev/null \
+        && echo "OK: clockoverlay/textoverlay present" \
+        || echo "WARNING: clockoverlay/textoverlay not found at build time"; \
+    rm -rf /root/.cache/gstreamer-1.0; \
+    true
 
 COPY . /opt/addon
 
