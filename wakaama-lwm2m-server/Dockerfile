@@ -23,7 +23,8 @@ RUN apt-get update \
         gstreamer1.0-plugins-bad \
         gstreamer1.0-plugins-ugly \
     && gst-inspect-1.0 videotestsrc videoconvert x264enc rtph264pay >/dev/null \
-    && gst-inspect-1.0 pango clockoverlay textoverlay >/dev/null \
+    && (gst-inspect-1.0 clockoverlay textoverlay >/dev/null \
+        || echo "WARNING: clockoverlay/textoverlay not found at build time; RTSP server will use no-overlay fallback") \
     && rm -rf /var/lib/apt/lists/*
 
 COPY . /opt/addon
