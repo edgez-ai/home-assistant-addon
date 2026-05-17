@@ -1,4 +1,4 @@
-FROM debian:bookworm-slim
+FROM ubuntu:25.10
 
 ARG TARGETARCH
 
@@ -10,7 +10,7 @@ RUN apt-get update \
         fonts-dejavu-core \
         libmicrohttpd12 \
         libmosquitto1 \
-        libglib2.0-0 \
+        libglib2.0-0t64 \
         libcairo2 \
         libfontconfig1 \
         libfreetype6 \
@@ -36,22 +36,49 @@ RUN apt-get update \
         gstreamer1.0-plugins-ugly \
     && rm -rf /var/lib/apt/lists/*
 
-# Diagnostics only; do not fail the build here. The runtime diagnostic in
-# run.sh will produce a more useful report if anything is missing in the
-# deployed image.
-RUN set +e; \
-    echo "=== gst-inspect verification (informational) ==="; \
-    gst-inspect-1.0 videotestsrc videoconvert x264enc rtph264pay >/dev/null \
-        && echo "OK: core encode pipeline elements present" \
-        || echo "WARNING: core encode pipeline elements missing"; \
-    gst-inspect-1.0 pango >/dev/null \
-        && echo "OK: pango plugin present" \
-        || echo "WARNING: pango plugin not found at build time"; \
-    gst-inspect-1.0 clockoverlay textoverlay >/dev/null \
-        && echo "OK: clockoverlay/textoverlay present" \
-        || echo "WARNING: clockoverlay/textoverlay not found at build time"; \
-    rm -rf /root/.cache/gstreamer-1.0; \
-    true
+# Verify the pango GStreamer plugin file is actually on disk. If it is not,
+# fail the build now (instead of producing a silently broken image).
+RUN set -eu; \
+    arch="$(dpkg --print-architecture)"; \
+    case "$arch" in \
+        amd64)        triplet="x86_64-linux-gnu" ;; \
+        arm64|aarch64) triplet="aarch64-linux-gnu" ;; \
+        armhf)        triplet="arm-linux-gnueabihf" ;; \
+        *)            triplet="" ;; \
+    esac; \
+    plugin_dir="/usr/lib/${triplet}/gstreamer-1.0"; \
+    echo "Looking for libgstpango.so in ${plugin_dir}"; \
+    if [ ! -f "${plugin_dir}/libgstpango.so" ]; then \
+        echo "libgstpango.so missing - searching apt for the correct package"; \
+        apt-get update; \
+        DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends apt-file; \
+        apt-file update; \
+        echo "--- apt-file search libgstpango.so ---"; \
+        apt-file search libgstpango.so | tee /tmp/pango-search.log; \
+        pkg="$(awk -F: '{print $1}' /tmp/pango-search.log | head -n1)"; \
+        if [ -n "${pkg}" ]; then \
+            echo "Installing ${pkg} to get libgstpango.so"; \
+            DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "${pkg}"; \
+        else \
+            echo "ERROR: no apt package ships libgstpango.so on this arch (${arch})"; \
+            exit 1; \
+        fi; \
+        rm -rf /var/lib/apt/lists/*; \
+    fi; \
+    test -f "${plugin_dir}/libgstpango.so" || { \
+        echo "ERROR: libgstpango.so still missing after install attempt"; \
+        exit 1; \
+    }; \
+    echo "OK: libgstpango.so present at ${plugin_dir}/libgstpango.so"; \
+    ldd "${plugin_dir}/libgstpango.so" | tee /tmp/pango-ldd.log; \
+    if grep -q 'not found' /tmp/pango-ldd.log; then \
+        echo "ERROR: libgstpango.so has missing shared libraries"; \
+        exit 1; \
+    fi; \
+    rm -f /tmp/pango-ldd.log /tmp/pango-search.log; \
+    gst-inspect-1.0 clockoverlay textoverlay >/dev/null; \
+    echo "OK: clockoverlay/textoverlay registered"; \
+    rm -rf /root/.cache/gstreamer-1.0
 
 COPY . /opt/addon
 
